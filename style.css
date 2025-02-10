@@ -16,7 +16,7 @@ input[type="number"]::-webkit-outer-spin-button {
   justify-content: center;
   margin-top: 100px;
 }
-.add-btn {
+.add-btn,button {
   border: solid;
   border-radius: 10px;
   width: 70px;
@@ -24,6 +24,9 @@ input[type="number"]::-webkit-outer-spin-button {
   cursor: pointer;
 }
 .add-btn:hover{
+  background-color: aquamarine;
+}
+button:hover{
   background-color: aquamarine;
 }
 .title {

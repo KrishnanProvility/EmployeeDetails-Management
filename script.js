@@ -1,101 +1,137 @@
-function HideTheTable() {
-    const table = document.querySelector(".head-table");
-    const form = document.querySelector(".hidenForm");
+const apiUrl = "http://localhost:3000/employees";
+let editingId = null;
 
-    table.style.display = "none";
-    form.style.display = "block";
+// Show Employee Form
+function showForm(id) {
+  document.querySelector(".hidenForm").style.display = "block";
+  document.querySelector(".head-table").style.display = "none";
+
+  if (!id) {
+    document.getElementById("empName").value = "";
+    document.querySelector("select[name='department']").value = "HR";
+    document.getElementById("email").value = "";
+    document.getElementById("contact").value = "";
+    document.getElementById("address").value = "";
+    document.getElementById("salary").value = "";
+    editingId = null;
+  }
+
+  document.getElementById("form-submit-btn").innerText = "Submit";
 }
 
-function retriveTable(event)
-{
-    event.preventDefault();
-    const empName = document.getElementById("empName").value;
-    const department = document.querySelector("select[name='department']").value;
-    const email = document.getElementById("email").value;
-    const contact = document.getElementById("contact").value;
-    const address = document.getElementById("address").value;
-    const salary = document.getElementById("salary").value;
-
-    const tableBody = document.querySelector(".table tbody");
-
-    const newRow = document.createElement("tr");
-    newRow.innerHTML = `
-        <td>${Math.floor(Math.random() * 1000)}</td>
-        <td>${empName}</td>
-        <td>${department}</td>
-        <td>${email}</td>
-        <td>${contact}</td>
-        <td>${address}</td>
-        <td>${salary}</td>
-        <td><button onclick= "editTable(this)">Edit</button> <button onclick="deleteData(this)">Delete</button></td>`;
-
-    tableBody.appendChild(newRow);
-
-    document.getElementById("empName").value = '';
-    document.getElementById("email").value = '';
-    document.getElementById("contact").value = '';
-    document.getElementById("address").value = '';
-    document.getElementById("salary").value = '';
-    document.querySelector("select[name='department']").selectedIndex = 0;
-
-    const table = document.querySelector(".head-table");
-    const form = document.querySelector(".hidenForm");
-    const noData =document.querySelector(".noData")
-
-    table.style.display = "block";
-    form.style.display = "none";
-    noData.style.display = "none";
+// Show Table and Hide Form
+function showTable() {
+  document.querySelector(".hidenForm").style.display = "none";
+  document.querySelector(".head-table").style.display = "block";
 }
 
-function editTable(button) {
-    const row = button.closest("tr");
-    const cells = row.querySelectorAll("td");
+// Load Employee Data
+async function loadTableData() {
+  const response = await fetch(apiUrl);
+  const employees = await response.json();
 
-    const id = cells[0].textContent;
-    const empName = cells[1].textContent;
-    const department = cells[2].textContent;
-    const email = cells[3].textContent;
-    const contact = cells[4].textContent;
-    const address = cells[5].textContent;
-    const salary = cells[6].textContent;
+  const tableBody = document.getElementById("employeeTableBody");
+  if (!tableBody) {
+    console.error("Table body element not found!");
+    return;
+  }
 
-    
-    document.getElementById("empName").value = empName;
-    document.querySelector("select[name='department']").value = department;
-    document.getElementById("email").value = email;
-    document.getElementById("contact").value = contact;
-    document.getElementById("address").value = address;
-    document.getElementById("salary").value = salary;
+  tableBody.innerHTML = ""; // Clear table before updating
 
-    
-    const table = document.querySelector(".head-table");
-    const form = document.querySelector(".hidenForm");
+  if (employees.length === 0) {
+    tableBody.innerHTML = `<tr><td colspan="8">No data available</td></tr>`;
+    return;
+  }
 
-    table.style.display = "none";
-    form.style.display = "block";
-
-  
-    form.onsubmit = function (event) {
-        event.preventDefault();
-
-        cells[1].textContent = document.getElementById("empName").value;
-        cells[2].textContent = document.querySelector("select[name='department']").value;
-        cells[3].textContent = document.getElementById("email").value.trim();
-        cells[4].textContent = document.getElementById("contact").value.trim();
-        cells[5].textContent = document.getElementById("address").value.trim();
-        cells[6].textContent = document.getElementById("salary").value.trim();
-        form.reset();
-        table.style.display = "block";
-        form.style.display = "none";
-    };
+  employees.forEach((emp) => {
+    let row = `<tr>
+            <td>${emp.id}</td>
+            <td>${emp.name}</td>
+            <td>${emp.department}</td>
+            <td>${emp.email}</td>
+            <td>${emp.contact}</td>
+            <td>${emp.address}</td>
+            <td>${emp.salary}</td>
+            <td>
+                <button class="btn btn-warning btn-sm" onclick="editTable(${emp.id})">Edit</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteTable(${emp.id})">Delete</button>
+            </td>
+        </tr>`;
+    tableBody.innerHTML += row;
+  });
 }
 
+// Add or Update Employee
+async function retriveTable(event) {
+  event.preventDefault();
 
+  const empData = {
+    id: editingId,
+    name: document.getElementById("empName").value,
+    department: document.querySelector("select[name='department']").value,
+    email: document.getElementById("email").value,
+    contact: document.getElementById("contact").value,
+    address: document.getElementById("address").value,
+    salary: document.getElementById("salary").value,
+  };
 
+  if (editingId) {
+    console.log("Editing ID:", editingId);
+    console.log("Sending Data:", empData);
 
+    const putUrl = `http://localhost:3000/employees/${editingId}`;
 
+    await fetch(putUrl, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(empData), // Convert to JSON string
+    }).then((response) => {
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+      return response.json();
+    });
+  } else {
+    const response = await fetch(apiUrl);
+    const data = await response.json();
+    let nextId =
+    data.length +1;
+    empData.id = nextId;
 
+    await fetch(apiUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(empData),
+    });
+  }
 
+  loadTableData();
+  showTable();
+}
 
+// Edit Employee
+async function editTable(id) {
+  const response = await fetch(`${apiUrl}?id=${id}`);
+  const emp = await response.json();
 
+  document.getElementById("empName").value = emp[0].name;
+  document.querySelector("select[name='department']").value = emp[0].department;
+  document.getElementById("email").value = emp[0].email;
+  document.getElementById("contact").value = emp[0].contact;
+  document.getElementById("address").value = emp[0].address;
+  document.getElementById("salary").value = emp[0].salary;
 
+  editingId = id;
+  document.getElementById("form-submit-btn").innerText = "Update";
+
+  showForm(id);
+}
+
+// Delete Employee
+async function deleteTable(id) {
+  await fetch(`${apiUrl}/${id}`, { method: "DELETE" });
+  loadTableData();
+}
+
+// Load Employee Data on Page Load
+window.onload = loadTableData;
